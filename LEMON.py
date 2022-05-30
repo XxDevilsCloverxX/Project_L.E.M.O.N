@@ -91,7 +91,7 @@ async def on_message(message):
         return False
 
     #confirm that the message is a valid command before checking command operations
-    if message.content.split()[0] in command_names or :
+    if message.content.split()[0] in command_names or lemon_mention(message):
 
         if str(message.channel.type) != "private":
             channel = str(message.channel.name) #get channel name if not a DM
