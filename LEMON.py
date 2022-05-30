@@ -108,10 +108,10 @@ async def on_message(message):
             return None
 
     #determine if msg is a response to modmail
-    elif channel == "mod-mail" and len(message.mentions)==1:
+    elif channel == "mod-mail" and len(message.mentions)!=0:
         member_obj = message.mentions[0]    #get user mentioned
         #check for file responses:
-        if has_attachements(messages):
+        if has_attachements(message):
             for file in message.attachments:
                 await member_obj.send(f"Moderator {username} has replied with a file:")
                 await member_obj.send(file.url)
