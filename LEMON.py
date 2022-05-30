@@ -24,7 +24,7 @@ async def on_ready():
 This is a global declaration block of variables that can be used
 during LEMON's runtime...must be updated manually as games are released
 """
-command_names = set("/lemonhelp","/purge","/resources") #tuple of command names LEMON users can access, function names are unique
+command_names = set(("/lemonhelp","/purge","/resources")) #set of command names LEMON users can access, function names are unique
 manuals = {
 "FTC": tuple(["https://www.firstinspires.org/sites/default/files/uploads/resource_library/ftc/game-manual-part-1-traditional-events.pdf", "https://www.firstinspires.org/sites/default/files/uploads/resource_library/ftc/game-manual-part-2-traditional.pdf"]),
 "GEAR": tuple(["https://www.youtube.com/watch?v=tXWykG-8_Mw&list=PLJR32U_dICxeLXuzJeBRt3xAuo1TEZHdZ"]),
@@ -62,36 +62,36 @@ async def on_message(message):
     user_message = str(message.content) #get the message sent
     # do not repeat events when the bot is message sender
     if message.author == client.user:
-        return
+        return None
+
+    #checks for admin priviledge, returns True if user sending message is admin
+    def user_admin_test(message):
+        #obtain a set of the names of the user roles
+        user_roles = set()
+        for role in message.author.roles:
+            user_roles.update(set([role.name])) #sets implemented with hash tables-speeds program up
+        return "Admin" in user_roles
+
+    #checks message for any mentions of lemon, returns true if lemon mentioned
+    def lemon_mention(message):
+        #Determine if LEMON is mentioned via role id or user id
+        mentioned = False
+        for role in message.role_mentions:
+            if 980727200045219894 == role.id:   #lemon's role id
+                mentioned = True
+        for mention in message.mentions:
+            if mention.id == 823964022071754752: #lemon's user id
+                mentioned = True
+        return mentioned
+
+    #checks if the message contains attachments and returns true if it does
+    def has_attachements(message):
+        if len(message.attachments)!=0:
+            return True
+        return False
 
     #confirm that the message is a valid command before checking command operations
-    if message.content.split()[0] in command_names:
-
-        #checks for admin priviledge, returns True if user sending message is admin
-        def user_admin_test(message):
-            #obtain a set of the names of the user roles
-            user_roles = set()
-            for role in message.author.roles:
-                user_roles.update(set([role.name])) #sets implemented with hash tables-speeds program up
-            return "Admin" in user_roles
-
-        #checks message for any mentions of lemon, returns true if lemon mentioned
-        def lemon_mention(message):
-            #Determine if LEMON is mentioned via role id or user id
-            mentioned = False
-            for role in message.role_mentions:
-                if 980727200045219894 == role.id:   #lemon's role id
-                    mentioned = True
-            for mention in message.mentions:
-                if mention.id == 823964022071754752: #lemon's user id
-                    mentioned = True
-            return mentioned
-
-        #checks if the message contains attachments and returns true if it does
-        def has_attachements(message):
-            if len(message.attachments)!=0:
-                return True
-            return False
+    if message.content.split()[0] in command_names or :
 
         if str(message.channel.type) != "private":
             channel = str(message.channel.name) #get channel name if not a DM
@@ -163,7 +163,7 @@ async def on_message(message):
         else:
             await message.channel.send(f"Sorry {username}, you have insufficient permissions to use this command!")
             return None
-    
+
     else:
         return None
 
