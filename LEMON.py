@@ -38,7 +38,7 @@ manuals = {
 @client.event
 async def on_member_join(member):
     if member.dm_channel == None:
-        await id = member.create_dm()   #create a new dm channel
+        await member.create_dm()   #create a new dm channel
     direct_channel = member.dm_channel
     await direct_channel.send(f"Salutations {member.name}! I am L.E.M.O.N, responsible for aiding everyone in the guild. Enjoy your stay! And feel free to check my open-source repo at: {None}")
     return None
@@ -47,7 +47,7 @@ async def on_member_join(member):
 @client.event
 async def on_member_remove(member):
     if member.dm_channel == None:
-        await id = member.create_dm()   #create a new dm channel
+        await member.create_dm()   #create a new dm channel
     direct_channel = member.dm_channel
     await direct_channel.send(f"Farewell {member.name}! We hope you polished some skills during your time with us.")
     return None
@@ -61,7 +61,7 @@ async def on_message(message):
         user_roles = set()
         for role in message.author.roles:
             user_roles.update(set([role.name])) #sets implemented with hash tables-speeds program up
-            return "Admin" in user_roles
+        return "Admin" in user_roles
 
     #checks message for any mentions of lemon, returns true if lemon mentioned
     def lemon_mention(message):
@@ -79,9 +79,10 @@ async def on_message(message):
     def has_attachements(message):
         if len(message.attachments)!=0:
             return True
+        return False
 
     if str(message.channel.type) != "private":
-        channel = str(message.channel.name) #get channel name
+        channel = str(message.channel.name) #get channel name if not a DM
 
     #gather string reps of information about the message
     message.content.lower()
@@ -96,12 +97,11 @@ async def on_message(message):
     if str(message.channel.type) == "private":
         mod_mail_channel = discord.utils.get(client.get_all_channels(), name="mod-mail") #get the mod mail channel from input
         #check for attachments
-        if has_attachements: #this allows submissions of files for analysis
+        if has_attachements(message): #this allows submissions of files for analysis
             await mod_mail_channel.send(f"{username} attached:")
             for file in message.attachments:
                 await mod_mail_channel.send(file.url)
             return None
-
 
         else:
             await mod_mail_channel.send(f"{username} submitted: {user_message}")
@@ -111,7 +111,7 @@ async def on_message(message):
     elif channel == "mod-mail" and len(message.mentions)==1:
         member_obj = message.mentions[0]    #get user mentioned
         #check for file responses:
-        if has_attachements:
+        if has_attachements(messages):
             for file in message.attachments:
                 await member_obj.send(f"Moderator {username} has replied with a file:")
                 await member_obj.send(file.url)
@@ -123,7 +123,7 @@ async def on_message(message):
             return None
 
     #if user is sending a greeting, greet the user back with a help cmd
-    if channel == "lemon-test_grounds" and lemon_mention:
+    if lemon_mention(message):
         await message.channel.send(f"Salutations {username}. For my help: please type /lemonhelp")
         return None
 
@@ -153,7 +153,7 @@ async def on_message(message):
     Below this point is admin-only commands
     """
     #admin command to clean current text channel
-    if user_message == "/purge" and user_admin_test and channel != "ddlc-dump":
+    if user_message == "/purge" and user_admin_test(message) and channel != "ddlc-dump":
         await message.channel.purge(limit=100)
         print(f"Purging of {channel} for 100 messages completed succsessfully")
         return None
