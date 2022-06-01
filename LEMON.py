@@ -5,8 +5,8 @@ Tech Robotics Association to aid with the growth of the Texas Robotics scenes
 import discord  #bot commands and API
 import os   #for the machine hosting LEMON
 from dotenv import load_dotenv  #importing .env from host machine
-import requests #reaching webpages to scrape data related to lookup
-from bs4 import BeautifulSoup
+from time import sleep  #call the machine to wait before performing a bot action
+import csv  #opening separate csv files to access data
 
 #import .env secrets
 load_dotenv()
@@ -14,11 +14,6 @@ load_dotenv()
 #init some variables for L.E.M.O.N
 client = discord.Client() #send request to Discord API
 token = os.getenv('TOKEN')  #get and init the token
-
-#initalize L.E.M.O.N
-@client.event
-async def on_ready():
-    print(f"{client.user} successfully logged in.")
 
 """
 This is a global declaration block of variables that can be used
@@ -33,6 +28,21 @@ manuals = {
 "FLL":tuple(["https://www.youtube.com/watch?v=tXWykG-8_Mw&list=PLJR32U_dICxeLXuzJeBRt3xAuo1TEZHdZ"]),
 "MENTORSHIP": tuple(["https://www.techroboticsassociation.org/", "https://info.firstinspires.org/mentor-network"])
 }   #dictionary containing online resource urls for the games, possibly .txts in the future
+slurs = set() #set of unique words that will be used for lookups to prevent misbehavior
+
+#open a csv and store the data as a set:
+with open('Terms-to-Block.csv', 'r') as csvfile:
+    #create csvreader
+    csvreader = csv.reader(csvfile)
+    #get the rows from the reader
+    for row in csvreader:
+        #strip the commas from the csv and access the words, update word to the set of slurs
+        slurs.update([row[0].strip(',').lower()])
+
+#initalize L.E.M.O.N
+@client.event
+async def on_ready():
+    print(f"{client.user} successfully logged in.")
 
 #greet a new memeber
 @client.event
@@ -55,11 +65,41 @@ async def on_member_remove(member):
 #listen for user messages
 @client.event
 async def on_message(message):
+    """
+    Anything in this upper block of code executes on all
+    Messages in Guild Channels L.E.M.O.N is allowed to see
+    """
+    #copy the original message for usage with mod-mail submissions
+    full_message = str(message.content)
+
     #lowercase the contents of the message
     message.content.lower()
-    #gather string reps of information about the message
-    username = str(message.author).split("#")[0] #remove discriminator
-    user_message = str(message.content) #get the message sent
+
+    #returns True if message contained any slurs in our hash
+    def contained_slurs(usermessage):
+        contains = False
+        #detect any slurs the message may contain
+        for word in usermessage:
+            for substring in slurs:
+                if substring in word:
+                    contains = True
+        return contains
+
+    #split the string to a list of it's parts (sepearated by spaces)
+    user_message = str(message.content).split()
+    #gather string representation of author without discriminator
+    username = str(message.author).split("#")[0]
+
+    #get slurs out of message view
+    if contained_slurs(user_message):
+        await message.channel.purge(limit=1)
+        await message.channel.send(f"{username}, please watch your use of language!")
+        #stop processing message request
+        return None
+
+    #if no slurs were detected, extract the command
+    user_command = user_message.pop(0)
+
     # do not repeat events when the bot is message sender
     if message.author == client.user:
         return None
@@ -90,11 +130,15 @@ async def on_message(message):
             return True
         return False
 
-    #confirm that the message is a valid command before checking command operations
-    if message.content.split()[0] in command_names or lemon_mention(message):
+    #confirm that tokens were passed to the message:
+    def has_tokens(msg):
+        if len(msg)!=0:
+            return True
+        else:
+            return False
 
-        if str(message.channel.type) != "private":
-            channel = str(message.channel.name) #get channel name if not a DM
+    #confirm that the message is a valid command before checking command operations
+    if user_command in command_names or lemon_mention(message):
 
         # determine if LEMON is being used for ModMail interactions
         if str(message.channel.type) == "private":
@@ -107,65 +151,84 @@ async def on_message(message):
                 return None
 
             else:
-                await mod_mail_channel.send(f"{username} submitted: {user_message}")
+                await mod_mail_channel.send(f"{username} submitted: {full_message}")
                 return None
 
         #determine if msg is a response to modmail
-        elif channel == "mod-mail" and len(message.mentions)!=0:
-            member_obj = message.mentions[0]    #get user mentioned
-            #check for file responses:
-            if has_attachements(message):
-                for file in message.attachments:
-                    await member_obj.send(f"Moderator {username} has replied with a file:")
-                    await member_obj.send(file.url)
-                return None
-            else:
-                pos = message.content.index(" ")    #get everything after mention
-                mod_message = user_message[pos:]    #modify the string to not have a mention
-                await member_obj.send(f"{username} responded to your mod-mail: {mod_message}")
-                return None
+        elif str(message.channel.name) == "mod-mail" and len(message.mentions)!=0:
+                member_obj = message.mentions[0] #get user mentioned
+                #check for file responses:
+                if has_attachements(message):
+                    for file in message.attachments:
+                        await member_obj.send(f"Moderator {username} has replied with a file:")
+                        await member_obj.send(file.url)
+                    return None
+                else:
+                    pos = message.content.index(" ")    #get everything after mention
+                    mod_message = user_message[pos:]    #modify the string to not have a mention
+                    await member_obj.send(f"{username} responded to your mod-mail: {mod_message}")
+                    return None
 
-        #if user is sending a greeting, greet the user back with a help cmd
+        #if user is mentions lemon, greet user and offer help
         if lemon_mention(message):
-            await message.channel.send(f"Salutations {username}. For my help: please type /lemonhelp")
-            return None
+                await message.channel.send(f"Salutations {username}. For my help: please type /lemonhelp")
+                return None
 
         #lemonhelp menu
-        if user_message == "/lemonhelp":
-            await message.channel.send(f"Hello {username}, my current supported commands are: {command_names}. You can also PM me to send a ModMail message for the Q/A board")
-            return None
+        if user_command == "/lemonhelp":
+                await message.channel.send(f"Hello {username}, my current supported commands are: {command_names}. You can also PM me to send a ModMail message for the Q/A board")
+                return None
 
-        #online resource urls lookup
-        if user_message.startswith("/resources"):
-            tokens = user_message.split()   #split string at whitespaces
-            #remove the /resources...
-            tokens.pop(0)
-            for token in tokens:
-                token = token.upper()   #uppercase the keys
-                try:
-                    accessed = manuals[token]   #access the dictionary at the key if the key exists
-                except:
-                    await message.channel.send(f"Sorry {username}, {token} was not a key in our resource table. :(")
+        #/resource command accessible to @everyone
+        if user_command == "/resources":
+                #confirm that user passed tokens:
+                if not has_tokens(user_message):
+                    await message.channel.send("You have tried to use /resources with no topics! try '/resources [topics]' (a spaced list of topics without brackets or commas)")
+                    await message.channel.send(f"A list of supported topics includes: {manuals.keys}")
+                    return None
                 else:
-                    #access the resource tuple stored at the key
-                    for url in accessed:
-                        await message.channel.send(f"{url}")
-            return None
+                    for token in user_message:
+                        token = token.upper()   #uppercase the tokens
+                        try:
+                            accessed = manuals[token]   #access the dictionary at the key if the key exists
+                        except:
+                            await message.channel.send(f"Sorry {username}, {token} was not a key in our resource table. :(")
+                        else:
+                            #access the resource tuple stored at the key
+                            for url in accessed:
+                                await message.channel.send(f"{url}")
+                                sleep(1)   #wait 1 second before message sends so links have time to embed
+                    return None
 
         """
         Below this point is admin-only commands
         """
-        #admin command to clean current text channel
-        if user_message == "/purge" and user_admin_test(message) and channel != "ddlc-dump":
-            await message.channel.purge(limit=100)
-            print(f"Purging of {channel} for 100 messages completed succsessfully")
-            return None
-        else:
-            await message.channel.send(f"Sorry {username}, you have insufficient permissions to use this command!")
-            return None
+        #admin command to clean current text channel for 'arg' messages
+        if user_command == "/purge" and user_admin_test(message):
+            #confirm that a token is passed:
+            if not has_tokens(user_message):
+                    await message.channel.send("ERROR: /purge takes integer argument but None was given. try /purge (int)")
+                    return None
 
+                #a token was passed
+            else:
+                    #try to convert the argument to a integer
+                    try:
+                        arg = int(user_message[0])  #user_message at the first index should be the integer passed with the /purge command
+                    except:
+                        await message.channel.send(f"argument '{user_message[0]}' not convertible to int type.")
+                        return None
+                    else:
+                        await message.channel.purge(limit=arg)
+                        print(f"Purging of {message.channel.name} history for {arg} messages completed succsessfully")
+                        return None
+        elif user_command == "/purge" and not user_admin_test(message):
+                await message.channel.send(f"Sorry {username}, you have insufficient permissions to use /purge command!")
+                return None
+
+    #below this else statement will execute on every non-command!
     else:
-        return None
+            return None
 
 #notify machine that LEMON has disconnected during runtime
 @client.event
@@ -174,3 +237,10 @@ async def on_disconnect():
 
 #Runtime of bot:
 client.run(token)
+
+#Subject to change:
+#Luxury
+#Experimental
+#Manager-bot
+#Offering
+#Nerds some assistance
