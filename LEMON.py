@@ -99,8 +99,7 @@ async def on_message(message):
     username = str(message.author).split("#")[0]
 
     #get slurs out of message view if not DM channel
-    containment = contained_slurs(user_message) or contained_slurs(stripped)
-
+    containment = contained_slurs(user_message) or contained_slurs([stripped])
     if containment and not str(message.channel.type) == "private":
         await message.channel.purge(limit=1)
         await message.channel.send(f"{username}, please watch your language!")
