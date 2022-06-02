@@ -277,12 +277,12 @@ async def on_message_edit(before, after):
         #lowercase for checks
         after.content = after.content.lower()
         #strip the possible spacings out
-        stripped = message.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
+        stripped = after.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
         #get slurs out of message view if not DM channel
         containment = contained_slurs(user_message) or contained_slurs([stripped])
         if containment and not str(message.channel.type) == "private":
-            await message.channel.purge(limit=1)
-            await message.channel.send(f"{username}, please watch your language!")
+            await after.channel.purge(limit=1)
+            await after.channel.send(f"{username}, please watch your language!")
             #stop processing message request
             return None
 
