@@ -69,6 +69,10 @@ async def on_message(message):
     Anything in this upper block of code executes on all
     Messages in Guild Channels L.E.M.O.N is allowed to see
     """
+    # do not run scripts on message when the L.E.M.O.N is message sender
+    if message.author == client.user:
+        return None
+
     #copy the original message for usage with mod-mail submissions
     full_message = str(message.content)
 
@@ -99,10 +103,6 @@ async def on_message(message):
 
     #if no slurs were detected, extract the command
     user_command = user_message.pop(0)
-
-    # do not repeat events when the bot is message sender
-    if message.author == client.user:
-        return None
 
     #checks for admin priviledge, returns True if user sending message is admin
     def user_admin_test(message):
