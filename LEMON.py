@@ -176,7 +176,7 @@ async def on_message(message):
 
         #lemonhelp menu
         if user_command == "/lemonhelp":
-                await message.channel.send(f"Hello {username}, my current supported commands are: {command_names}. You can also PM me to send a ModMail message for the Q/A board")
+                await message.channel.send(f"Hello {username}, my current supported commands are: {command_names}. You can also PM me to send a ModMail message for the mod-mail channel.")
                 return None
 
         #/resource command accessible to @everyone
@@ -184,7 +184,7 @@ async def on_message(message):
                 #confirm that user passed tokens:
                 if not has_tokens(user_message):
                     await message.channel.send("You have tried to use /resources with no topics! try '/resources [topics]' (a spaced list of topics without brackets or commas)")
-                    await message.channel.send(f"A list of supported topics includes: {manuals.keys}")
+                    await message.channel.send(f"A list of supported topics includes: {manuals.keys()}")
                     return None
                 else:
                     for token in user_message:
