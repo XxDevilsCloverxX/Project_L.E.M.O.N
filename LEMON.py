@@ -266,26 +266,6 @@ async def on_message(message):
         else:
                 return None
 
-#listen for user message edits
-@client.event
-async def on_message_edit(before, after):
-        #returns True if message contained any slurs in our hash
-
-        """
-        Not much to do on edits, verify edits don't contain slurs
-        """
-        #lowercase for checks
-        after.content = after.content.lower()
-        #strip the possible spacings out
-        stripped = after.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
-        #get slurs out of message view if not DM channel
-        containment = contained_slurs(user_message) or contained_slurs([stripped])
-        if containment and not str(message.channel.type) == "private":
-            await after.channel.purge(limit=1)
-            await after.channel.send(f"{username}, please watch your language!")
-            #stop processing message request
-            return None
-
 #notify machine that LEMON has disconnected during runtime
 @client.event
 async def on_disconnect():
