@@ -14,6 +14,9 @@ load_dotenv()
 #init some variables for L.E.M.O.N
 client = discord.Client() #send request to Discord API
 token = os.getenv('TOKEN')  #get and init the token
+#specify intents
+discord.Intents.all()
+
 
 """
 This is a global declaration block of variables that can be used
@@ -43,18 +46,41 @@ with open('Terms-to-Block.csv', 'r') as csvfile:
 #initalize L.E.M.O.N
 @client.event
 async def on_ready():
+    #notify clean login
     print(f"{client.user} successfully logged in.")
+
+    #fetch guild roles
+    roles = client.guilds[0].roles[::-1]
+    print("Roles by hierary order:")
+    for role in roles:
+        print(role.name)
+
+    #change 3 to the top n roles that have admin priviledge
+    admin_roles = roles[:3]
+
+    #show a list of channel names
+    print(f"Channel Listing for {client.guilds[0].name}")
+    for channel in client.guilds[0].channels:
+        print(channel.name)
+
+    #obtain special channels
+    channel_mod_mails = discord.utils.find(lambda ch: "mail" in ch.name.lower() and "mail" in ch.name.lower(), client.guilds[0].channels) #get a channel with mod and mail in the name
+    channel_joins = discord.utils.find(lambda ch: "join" in ch.name.lower(), client.guilds[0].channels) #find a channel with join in name
+    try:
+        print(f"\nImportant:{channel_mod_mails.name} set as mod_mail channel\n{channel_joins.name} set as joins channel. If this is a mistake, terminate the hosting session.")
+    except:
+        print(f"\nIt appears that mod-mail or joins channel are not enabled on your server. To enable these features in the program, create a mod-mail channel whose name contains 'mod' and 'mail', and a join channel containing 'join' in the name")
 
 #greet a new memeber
 @client.event
 async def on_member_join(member):
-    await member.send(f"Salutations {member.name}! I am L.E.M.O.N, responsible for aiding everyone in the guild. Enjoy your stay! And feel free to check my open-source repo at: {lemon_url}")
-    return None
+    await member.send(f"Salutations {member.name}! I am L.E.M.O.N, responsible for aiding everyone in {member.guild.name}. Enjoy your stay! And feel free to check my open-source repo at: {lemon_url}")
+    await channel_joins.send(f"Salutations {member.name}, welcome to {channel_joins.guild.name}!")
 
 #ping a departing member in private that we appreciate their time here
 @client.event
 async def on_member_remove(member):
-    await member.send(f"Farewell, {member.name}! We hope you polished some skills during your time with us.")
+    await member.send(f"Farewell, {member.name}! {client.guilds[0].name} wishes you success and prosperity!")
     return None
 
 #listen for user messages
@@ -76,7 +102,7 @@ async def on_message(message):
 
     #print the messages no space, or otherwise tripped text to fool censor checker
     stripped = message.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
-    print(stripped)
+
     #returns True if message contained any slurs in our hash
     def contained_slurs(usermessage):
         contains = False
@@ -90,9 +116,10 @@ async def on_message(message):
 
     #split the string to a list of it's parts (sepearated by spaces)
     user_message = str(message.content).split()
+
     #gather string representation of author without discriminator
     username = str(message.author).split("#")[0]
-    print(user_message)
+
     #get slurs out of message view if not DM channel
     containment = contained_slurs(user_message) or contained_slurs([stripped])
     if containment and not str(message.channel.type) == "private":
@@ -108,15 +135,16 @@ async def on_message(message):
         #user sent an attachment that didn't contain a message
         if str(message.channel.type) == "private":
             await message.channel.send(f"Please include text with your attachment {username}.")
-    #run this if any message was in the message
+    #run this if any content was in the message
     else:
+
         #checks for admin priviledge, returns True if user sending message is admin
         def user_admin_test(message):
-            #obtain a set of the names of the user roles
-            user_roles = set()
+            #using the list of author roles, check if the author roles are in admin_table
             for role in message.author.roles:
-                user_roles.update(set([role.name])) #sets implemented with hash tables-speeds program up
-            return "Admin" in user_roles
+                if role in admin_roles:
+                    return True
+            return False
 
         #checks message for any mentions of lemon, returns true if lemon mentioned
         def lemon_mention(message):
@@ -145,22 +173,24 @@ async def on_message(message):
 
         # determine if LEMON is being used for ModMail interactions
         if str(message.channel.type) == "private":
-            mod_mail_channel = discord.utils.get(client.get_all_channels(), name="mod-mail") #get the mod mail channel from input
-            #check for attachments
-            if has_attachements(message): #this allows submissions of files for analysis
-                await mod_mail_channel.send(f"{username} attached:")
-                for file in message.attachments:
-                    await mod_mail_channel.send(file.url)
+            if channel_mod_mails.type != None:
+                #check for attachments
+                if has_attachements(message): #this allows submissions of files for analysis
+                    await channel_mod_mails.send(f"{username} attached:")
+                    for file in message.attachments:
+                        await channel_mod_mails.send(file.url)
 
-            #confirm that the message does not contain slurs that would otherwise be posted to mod-mail
-            if not containment:
-                await mod_mail_channel.send(f"{username} submitted: {full_message}")
+                #confirm that the message does not contain slurs that would otherwise be posted to mod-mail
+                if not containment:
+                    await channel_mod_mails.send(f"{username} submitted: {full_message}")
+                else:
+                    await message.channel.send(f"Sorry {username}! Your message potentially contained a slur and was not submitted to {channel_mod_mails.name}! Attachments still processed, so you should just resend your message.")
+                return None
             else:
-                await message.channel.send(f"Sorry {username}! Your message potentially contained a slur and was not submitted to the mod-mail! Attachments still processed, so you should just resend your message.")
-            return None
+                await message.channel.send(f"Sorry {username}, it appears this server does not have a mod-mail channel established. Please ping mods instead.")
 
         #determine if msg is a response to modmail
-        elif str(message.channel.name) == "mod-mail" and len(message.mentions)!=0:
+        elif str(message.channel.name) == channel_mod_mails.name and len(message.mentions)!=0:
                 member_obj = message.mentions[0] #get user mentioned
                 #check for file responses:
                 if has_attachements(message):
