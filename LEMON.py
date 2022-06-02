@@ -295,8 +295,8 @@ async def on_disconnect():
 client.run(token)
 
 #Subject to change:
-#Luxury
-#Experimental
-#Manager-bot
-#Offering
-#Nerds some assistance
+#Logistics
+#Experiment
+#Made with
+#Organized and
+#Nifty code
