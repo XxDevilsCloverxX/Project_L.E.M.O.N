@@ -29,6 +29,7 @@ manuals = {
 "MENTORSHIP": tuple(["https://www.techroboticsassociation.org/", "https://info.firstinspires.org/mentor-network"])
 }   #dictionary containing online resource urls for the games, possibly .txts in the future
 slurs = set() #set of unique words that will be used for lookups to prevent misbehavior
+lemon_url = "https://github.com/XxDevilsCloverxX/Project_L.E.M.O.N"
 
 #open a csv and store the data as a set:
 with open('Terms-to-Block.csv', 'r') as csvfile:
@@ -39,8 +40,6 @@ with open('Terms-to-Block.csv', 'r') as csvfile:
         #strip the commas from the csv and access the words, update word to the set of slurs
         slurs.update([row[0].strip(',').lower()])
 
-infile = open("To_append.txt", "a")
-
 #initalize L.E.M.O.N
 @client.event
 async def on_ready():
@@ -49,19 +48,13 @@ async def on_ready():
 #greet a new memeber
 @client.event
 async def on_member_join(member):
-    if member.dm_channel == None:
-        await member.create_dm()   #create a new dm channel
-    direct_channel = member.dm_channel
-    await direct_channel.send(f"Salutations {member.name}! I am L.E.M.O.N, responsible for aiding everyone in the guild. Enjoy your stay! And feel free to check my open-source repo at: {None}")
+    await member.send(f"Salutations {member.name}! I am L.E.M.O.N, responsible for aiding everyone in the guild. Enjoy your stay! And feel free to check my open-source repo at: {lemon_url}")
     return None
 
 #ping a departing member in private that we appreciate their time here
 @client.event
 async def on_member_remove(member):
-    if member.dm_channel == None:
-        await member.create_dm()   #create a new dm channel
-    direct_channel = member.dm_channel
-    await direct_channel.send(f"Farewell {member.name}! We hope you polished some skills during your time with us.")
+    await member.send(f"Farewell, {member.name}! We hope you polished some skills during your time with us.")
     return None
 
 #listen for user messages
@@ -82,7 +75,7 @@ async def on_message(message):
     message.content = message.content.lower()
 
     #print the messages no space, or otherwise tripped text to fool censor checker
-    stripped = message.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","")
+    stripped = message.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
     print(stripped)
     #returns True if message contained any slurs in our hash
     def contained_slurs(usermessage):
@@ -91,7 +84,7 @@ async def on_message(message):
         for word in usermessage:
             for substring in slurs:
                 #hello would be censored by hell
-                if substring in word and word != "hello":
+                if substring in word and "hello" not in word:
                     contains = True
         return contains
 
@@ -107,14 +100,6 @@ async def on_message(message):
         await message.channel.send(f"{username}, please watch your language!")
         #stop processing message request
         return None
-    elif not containment:
-        infile.write(stripped)
-        infile.write(',')
-        infile.write("\n")
-        for word in user_message:
-            infile.write(word)
-            infile.write(',')
-            infile.write('\n')
 
     #if no slurs were detected, extract the command
     try:

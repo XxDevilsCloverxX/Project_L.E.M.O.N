@@ -2,3 +2,7 @@
 *.env
 #ignore .sh files
 *.sh
+#ignore the csv
+*.csv
+#ignore the cleaned.txt
+cleaned.txt
