@@ -43,6 +43,18 @@ with open('Terms-to-Block.csv', 'r') as csvfile:
         #strip the commas from the csv and access the words, update word to the set of slurs
         slurs.update([row[0].strip(',').lower()])
 
+#Global Functions
+    #returns True if the message contains a slur, false otherwise
+def contained_slurs(usermessage):
+    contains = False
+    #detect any slurs the message may contain
+    for word in usermessage:
+        for substring in slurs:
+            #hello would be censored by hell
+            if substring in word and "hello" not in word:
+                contains = True
+    return contains
+
 #initalize L.E.M.O.N
 @client.event
 async def on_ready():
@@ -51,23 +63,18 @@ async def on_ready():
 
     #fetch guild roles
     roles = client.guilds[0].roles[::-1]
-    print("Roles by hierary order:")
-    for role in roles:
-        print(role.name)
 
     #change 3 to the top n roles that have admin priviledge
+    global admin_roles
     admin_roles = roles[:3]
 
-    #show a list of channel names
-    print(f"Channel Listing for {client.guilds[0].name}")
-    for channel in client.guilds[0].channels:
-        print(channel.name)
-
     #obtain special channels
+    global channel_mod_mails
     channel_mod_mails = discord.utils.find(lambda ch: "mail" in ch.name.lower() and "mail" in ch.name.lower(), client.guilds[0].channels) #get a channel with mod and mail in the name
+    global channel_joins
     channel_joins = discord.utils.find(lambda ch: "join" in ch.name.lower(), client.guilds[0].channels) #find a channel with join in name
     try:
-        print(f"\nImportant:{channel_mod_mails.name} set as mod_mail channel\n{channel_joins.name} set as joins channel. If this is a mistake, terminate the hosting session.")
+        print(f"\nImportant:\n{channel_mod_mails.name} set as mod_mail channel\n{channel_joins.name} set as joins channel.\nIf this is a mistake, terminate the hosting session.")
     except:
         print(f"\nIt appears that mod-mail or joins channel are not enabled on your server. To enable these features in the program, create a mod-mail channel whose name contains 'mod' and 'mail', and a join channel containing 'join' in the name")
 
@@ -103,17 +110,6 @@ async def on_message(message):
     #print the messages no space, or otherwise tripped text to fool censor checker
     stripped = message.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
 
-    #returns True if message contained any slurs in our hash
-    def contained_slurs(usermessage):
-        contains = False
-        #detect any slurs the message may contain
-        for word in usermessage:
-            for substring in slurs:
-                #hello would be censored by hell
-                if substring in word and "hello" not in word:
-                    contains = True
-        return contains
-
     #split the string to a list of it's parts (sepearated by spaces)
     user_message = str(message.content).split()
 
@@ -122,6 +118,7 @@ async def on_message(message):
 
     #get slurs out of message view if not DM channel
     containment = contained_slurs(user_message) or contained_slurs([stripped])
+
     if containment and not str(message.channel.type) == "private":
         await message.channel.purge(limit=1)
         await message.channel.send(f"{username}, please watch your language!")
@@ -258,7 +255,7 @@ async def on_message(message):
                             await message.channel.send(f"argument '{user_message[0]}' not convertible to int type.")
                             return None
                         else:
-                            await message.channel.purge(limit=arg)
+                            await message.channel.purge(limit=arg+1)    #also removes the /purge call
                             print(f"Purging of {message.channel.name} history for {arg} messages completed succsessfully")
                             return None
             elif user_command == "/purge" and not user_admin_test(message):
@@ -268,6 +265,26 @@ async def on_message(message):
         #below this else statement will execute on every non-command!
         else:
                 return None
+
+#listen for user message edits
+@client.event
+async def on_message_edit(before, after):
+        #returns True if message contained any slurs in our hash
+
+        """
+        Not much to do on edits, verify edits don't contain slurs
+        """
+        #lowercase for checks
+        after.content = after.content.lower()
+        #strip the possible spacings out
+        stripped = message.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
+        #get slurs out of message view if not DM channel
+        containment = contained_slurs(user_message) or contained_slurs([stripped])
+        if containment and not str(message.channel.type) == "private":
+            await message.channel.purge(limit=1)
+            await message.channel.send(f"{username}, please watch your language!")
+            #stop processing message request
+            return None
 
 #notify machine that LEMON has disconnected during runtime
 @client.event
