@@ -39,6 +39,8 @@ with open('Terms-to-Block.csv', 'r') as csvfile:
         #strip the commas from the csv and access the words, update word to the set of slurs
         slurs.update([row[0].strip(',').lower()])
 
+infile = open("To_append.txt", "a")
+
 #initalize L.E.M.O.N
 @client.event
 async def on_ready():
@@ -81,7 +83,7 @@ async def on_message(message):
 
     #print the messages no space, or otherwise tripped text to fool censor checker
     stripped = message.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","")
-
+    print(stripped)
     #returns True if message contained any slurs in our hash
     def contained_slurs(usermessage):
         contains = False
@@ -97,7 +99,7 @@ async def on_message(message):
     user_message = str(message.content).split()
     #gather string representation of author without discriminator
     username = str(message.author).split("#")[0]
-
+    print(user_message)
     #get slurs out of message view if not DM channel
     containment = contained_slurs(user_message) or contained_slurs([stripped])
     if containment and not str(message.channel.type) == "private":
@@ -105,6 +107,14 @@ async def on_message(message):
         await message.channel.send(f"{username}, please watch your language!")
         #stop processing message request
         return None
+    elif not containment:
+        infile.write(stripped)
+        infile.write(',')
+        infile.write("\n")
+        for word in user_message:
+            infile.write(word)
+            infile.write(',')
+            infile.write('\n')
 
     #if no slurs were detected, extract the command
     try:
