@@ -94,8 +94,9 @@ async def on_message(message):
     #gather string representation of author without discriminator
     username = str(message.author).split("#")[0]
 
-    #get slurs out of message view
-    if contained_slurs(user_message):
+    #get slurs out of message view if not DM channel
+    containment = contained_slurs(user_message)
+    if containment and not str(message.channel.type) == "private":
         await message.channel.purge(limit=1)
         await message.channel.send(f"{username}, please watch your use of language!")
         #stop processing message request
@@ -137,37 +138,42 @@ async def on_message(message):
         else:
             return False
 
-    #confirm that the message is a valid command before checking command operations
-    if user_command in command_names or lemon_mention(message):
+    # determine if LEMON is being used for ModMail interactions
+    if str(message.channel.type) == "private":
+        mod_mail_channel = discord.utils.get(client.get_all_channels(), name="mod-mail") #get the mod mail channel from input
+        #check for attachments
+        if has_attachements(message): #this allows submissions of files for analysis
+            await mod_mail_channel.send(f"{username} attached:")
+            for file in message.attachments:
+                await mod_mail_channel.send(file.url)
+            return None
 
-        # determine if LEMON is being used for ModMail interactions
-        if str(message.channel.type) == "private":
-            mod_mail_channel = discord.utils.get(client.get_all_channels(), name="mod-mail") #get the mod mail channel from input
-            #check for attachments
-            if has_attachements(message): #this allows submissions of files for analysis
-                await mod_mail_channel.send(f"{username} attached:")
+        else:
+            #confirm that the message does not contain slurs that would otherwise be posted to mod-mail
+            if not containment:
+                await mod_mail_channel.send(f"{username} submitted: {full_message}")
+            else:
+                await message.channel.send(f"Sorry {username}! The message contained a potential slur and was not submitted to the mod-mail!")
+            return None
+
+    #determine if msg is a response to modmail
+    elif str(message.channel.name) == "mod-mail" and len(message.mentions)!=0:
+            member_obj = message.mentions[0] #get user mentioned
+            #check for file responses:
+            if has_attachements(message):
                 for file in message.attachments:
-                    await mod_mail_channel.send(file.url)
+                    await member_obj.send(f"Moderator {username} has replied with a file:")
+                    await member_obj.send(file.url)
                 return None
 
             else:
-                await mod_mail_channel.send(f"{username} submitted: {full_message}")
+                pos = message.content.index(" ")    #get everything after mention
+                mod_message = user_message[pos:]    #modify the string to not have a mention
+                await member_obj.send(f"{username} responded to your mod-mail: {mod_message}")
                 return None
 
-        #determine if msg is a response to modmail
-        elif str(message.channel.name) == "mod-mail" and len(message.mentions)!=0:
-                member_obj = message.mentions[0] #get user mentioned
-                #check for file responses:
-                if has_attachements(message):
-                    for file in message.attachments:
-                        await member_obj.send(f"Moderator {username} has replied with a file:")
-                        await member_obj.send(file.url)
-                    return None
-                else:
-                    pos = message.content.index(" ")    #get everything after mention
-                    mod_message = user_message[pos:]    #modify the string to not have a mention
-                    await member_obj.send(f"{username} responded to your mod-mail: {mod_message}")
-                    return None
+    #confirm that the message is a valid command before checking command operations
+    if user_command in command_names or lemon_mention(message):
 
         #if user is mentions lemon, greet user and offer help
         if lemon_mention(message):
