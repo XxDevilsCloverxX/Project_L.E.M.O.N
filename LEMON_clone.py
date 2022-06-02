@@ -22,7 +22,7 @@ discord.Intents.all()
 This is a global declaration block of variables that can be used
 during LEMON's runtime...must be updated manually as games are released
 """
-command_names = set(("/lemonhelp","/purge","/resources", "/publish")) #set of command names LEMON users can access, function names are unique
+command_names = set(("/lemonhelp","/purge","/resources")) #set of command names LEMON users can access, function names are unique
 manuals = {
 "FTC": tuple(["https://www.firstinspires.org/sites/default/files/uploads/resource_library/ftc/game-manual-part-1-traditional-events.pdf", "https://www.firstinspires.org/sites/default/files/uploads/resource_library/ftc/game-manual-part-2-traditional.pdf"]),
 "GEAR": tuple(["https://www.youtube.com/watch?v=tXWykG-8_Mw&list=PLJR32U_dICxeLXuzJeBRt3xAuo1TEZHdZ"]),
@@ -73,12 +73,10 @@ async def on_ready():
     channel_mod_mails = discord.utils.find(lambda ch: "mail" in ch.name.lower() and "mail" in ch.name.lower(), client.guilds[0].channels) #get a channel with mod and mail in the name
     global channel_joins
     channel_joins = discord.utils.find(lambda ch: "join" in ch.name.lower(), client.guilds[0].channels) #find a channel with join in name
-    global announcements_channel
-    announcements_channel = discord.utils.find(lambda ch: "announce" in ch.name.lower() or ("org" in ch.name.lower() and "update" in ch.name.lower()) or "news" in ch.name.lower(), client.guilds[0].channels) #find a channel with announce in name
     try:
-        print(f"\nImportant:\n{channel_mod_mails.name} set as mod_mail channel\n{channel_joins.name} set as joins channel.\n{announcements_channel.name} set as announcements_channel\nIf this is a mistake, terminate the hosting session.")
+        print(f"\nImportant:\n{channel_mod_mails.name} set as mod_mail channel\n{channel_joins.name} set as joins channel.\nIf this is a mistake, terminate the hosting session.")
     except:
-        print(f"\nIt appears that mod-mail, announcements or joins channels are not enabled on your server.\nTo enable these features in the program: create channels whose names contain 'mod' and 'mail', 'join', and 'announce', 'update', or 'news'.")
+        print(f"\nIt appears that mod-mail or joins channel are not enabled on your server. To enable these features in the program, create a mod-mail channel whose name contains 'mod' and 'mail', and a join channel containing 'join' in the name")
 
 #greet a new memeber
 @client.event
@@ -191,7 +189,6 @@ async def on_message(message):
                 await message.channel.send(f"Sorry {username}, it appears this server does not have a mod-mail channel established. Please ping mods instead.")
 
         #determine if msg is a response to modmail
-        #Discord API will handle errors with pings and ignore if channel_mod_mails is not setup from init
         elif str(message.channel.name) == channel_mod_mails.name and len(message.mentions)!=0:
                 member_obj = message.mentions[0] #get user mentioned
                 #check for file responses:
@@ -267,13 +264,6 @@ async def on_message(message):
                     await message.channel.send(f"Sorry {username}, you have insufficient permissions to use /purge command!")
                     return None
 
-            #admin command to publish an announcement from a message made in one channel to the announcements channel
-            if user_command == "/publish" and user_admin_test(message):
-                await announcements_channel.send(f"{username} announces: {user_message}") #publish the message to the announcement channel
-                return None
-            else:
-                await message.channel.send(f"Sorry {username}, insufficient permission to publish a message to {announcements_channel.name}.")
-                return None
         #below this else statement will execute on every non-command!
         else:
                 return None
@@ -285,25 +275,7 @@ async def on_disconnect():
 
 @client.event
 async def on_message_edit(before, after):
-    """
-    Not much to do here besides prevent editing in slurs
-    """
-    #lowercase the contents of the message
-    after.content = after.content.lower()
-    #print the messages no space, or otherwise tripped text to fool censor checker
-    stripped = after.content.replace(" ","").replace("-","").replace("_","").replace("|","").replace(":","").replace(";","").replace("~","").replace("=","").replace("+","").replace("*","").replace(".", "")
-    #split the string to a list of it's parts (sepearated by spaces)
-    user_message = str(after.content).split()
-    #gather string representation of author without discriminator
-    username = str(after.author).split("#")[0]
-    #get slurs out of message view if not DM channel
-    containment = contained_slurs(user_message) or contained_slurs([stripped])
-    if containment and not str(after.channel.type) == "private":
-        await after.channel.purge(limit=1)
-        await after.channel.send(f"{username}, please watch your language!")
-        #stop processing message request
-        return None
-
+    print(f"{before.content} changed to {after.content}")
 #Runtime of bot:
 client.run(token)
 
