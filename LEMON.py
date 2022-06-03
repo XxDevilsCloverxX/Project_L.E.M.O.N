@@ -214,7 +214,7 @@ async def on_message_edit(before, after):
     extraction = msg_handle.message_obj_analysis(after)  #extraction: (str: username, str: original message_obj, str: stripped message_obj, list: [message_obj tokens])
 
     #like before, test for slurs and purge the channel as needed
-    containment = msg_handle.contained_slurs(extraction[-1]) or msg_handle.contained_slurs([extraction[2]])
+    containment = msg_handle.contained_slurs(extraction[-1],slurs) or msg_handle.contained_slurs([extraction[2]],slurs)
     if containment and not str(after.channel.type) == "private":
         await after.channel.purge(limit=1)
         await after.channel.send(f"{extraction[0]}, please watch your language!")
