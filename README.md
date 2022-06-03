@@ -25,3 +25,5 @@
 ### M ade with
 ### O rganized and
 ### N ifty code
+
+![L.E.M.O.N Profile] (https://github.com/XxDevilsCloverxX/Project_L.E.M.O.N/blob/main/lemon.jpeg)
