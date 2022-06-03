@@ -19,8 +19,9 @@
 
 ### This will fetch the discord library and allow ease of set up of your API
 
-## L ogistics
-## E xperiment
-## M ade with
-## O rganized and
-## N ifty code
+## L.E.M.O.N:
+### L ogistics
+### E xperiment
+### M ade with
+### O rganized and
+### N ifty code
