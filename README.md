@@ -26,4 +26,4 @@
 ### O rganized and
 ### N ifty code
 
-![L.E.M.O.N Profile] (lemon.jpeg)
+![L.E.M.O.N Profile] (/lemon.jpeg)
