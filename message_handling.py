@@ -6,21 +6,6 @@ see.
 
 import discord  #Discord API and Objects
 
-#A pre-defined set of Admin Roles on the currently-connected server
-
-
-#returns True if the message_obj contains a slur, false otherwise- slurs is a set that will contain slur word bases
-def contained_slurs(msg_tokens, slurs):
-    assert type(msg_tokens) == list, "Only lists can be passed!"
-    contains = False
-    #detect any slurs the message_obj may contain
-    for word in msg_tokens:
-        for substring in slurs:
-            #hello would be censored by hell
-            if substring in word and "hello" not in word:
-                contains = True
-    return contains
-
 # message_obj information extraction, returns a tuple of strings: (str: username,
 # str: original message_obj, str: stripped message_obj, list: [message_obj tokens])
 def message_obj_analysis(message_obj):
